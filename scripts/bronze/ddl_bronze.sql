@@ -7,6 +7,12 @@ Script Purpose:
     if they already exist.
 	  Run this script to re-define the DDL structure of 'bronze' Tables
 ===============================================================================
+We have 6 different file in sources, so , we need to create SQL DDL scripts for ALL CSV files.
+===============================================================================
+Moreover, we are droping that table if it exist
+===============================================================================
+
+
 */
 
 IF OBJECT_ID('bronze.crm_cust_info', 'U') IS NOT NULL
