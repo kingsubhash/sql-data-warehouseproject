@@ -1,0 +1,143 @@
+---Data quality check for bronze layer
+----CHecking for crm-Cust_info
+--Checking for Nulls or Duplicates in Primary Key
+
+SELECT 
+cst_id,
+COUNT(*)
+From bronze.crm_cust_info
+Group By cst_id
+HAVING Count(*)>1 or cst_id IS Null
+
+
+--Checking for unwanted spaces
+
+Select cst_firstname
+From bronze.crm_cust_info
+Where cst_firstname !=Trim(cst_firstname)
+
+Select cst_lastname
+From bronze.crm_cust_info
+Where cst_lastname !=Trim(cst_lastname)
+
+SELECT cst_key 
+FROM bronze.crm_cust_info
+WHERE cst_key != TRIM(cst_key);
+
+--Data Standardization and Consistency
+
+Select  Distinct cst_marital_status
+From bronze.crm_cust_info
+
+Select  Distinct cst_gndr
+From bronze.crm_cust_info
+
+
+---Checking for crm_prd_info
+--Checking for Nulls or Duplicates in Primary Key
+Select prd_id, Count(*)
+
+From bronze.crm_prd_info
+Group by prd_id
+Having Count(*) >1 or prd_id IS NULL
+--Checking for unwanted space in prd_key
+Select prd_key from bronze.crm_prd_info Where prd_key!=Trim(prd_key)
+
+--Checking for Null or negative values in cost 
+
+Select prd_cost from bronze.crm_prd_info Where prd_cost <0 or prd_cost IS null
+
+
+
+-- Data Standardization & Consistency
+SELECT DISTINCT 
+    prd_line 
+FROM bronze.crm_prd_info;
+
+-- Check for Invalid Date Orders (Start Date > End Date)
+-- Expectation: No Results
+SELECT 
+    * 
+FROM bronze.crm_prd_info
+WHERE prd_end_dt < prd_start_dt;
+
+
+
+
+----- Checking for crm_sales_details
+
+--Checking for unwanted space in sls_ord_num
+Select
+sls_ord_num
+from bronze.crm_sales_details
+Where sls_ord_num != Trim(sls_ord_num)
+
+--Checking all keys from cust_info are connected
+Select  sls_cust_id  From bronze.crm_sales_details
+Where sls_cust_id NOt in ( Select cst_id From silver.crm_cust_info)
+
+Select sls_prd_key From bronze.crm_sales_details
+Where sls_prd_key Not in ( Select prd_key From silver.crm_prd_info)
+
+--Since the order date, ship date and due date, all are in intergers, before casting to date, first check whether  there are negative values or 0 values
+
+
+Select 
+sls_order_dt, sls_ship_dt, sls_due_dt
+From bronze.crm_sales_details
+Where sls_order_dt <=0 Or sls_ship_dt<=0 Or sls_due_dt<=0
+--Also checking if the date have very highest value, like in future date
+
+Select 
+sls_order_dt, sls_ship_dt, sls_due_dt
+From bronze.crm_sales_details
+Where sls_order_dt >=20250101 Or sls_ship_dt>=20250101 Or sls_due_dt>=20250101
+
+
+--Check for Invalid Date Orders
+
+Select * from bronze.crm_sales_details
+Where sls_order_dt > sls_ship_dt or sls_order_dt> sls_due_dt
+
+---Checking for Sales, Quantity and Price
+--Business Rule
+-- Sales= Quantity * Price
+-- Negative, Zeros, Nulls are not allowed
+
+
+Select Distinct 
+
+sls_sales,
+sls_quantity,
+sls_price
+From bronze.crm_sales_details
+Where sls_sales!=sls_quantity * sls_price
+Or sls_sales IS NULL or sls_quantity IS NULL  Or sls_price IS null
+or sls_sales <=0 or sls_quantity <=0 Or sls_price <=0
+
+
+----Checking for erp_cust
+
+--Checking for outof range date, future date
+Select bdate
+from bronze.erp_cust_az12
+Where bdate > GETDATE()
+
+Select distinct gen from bronze.erp_cust_az12
+
+
+---Checking for erp_loc
+
+Select Distinct cntry from bronze.erp_loc_a101
+
+
+----Checking for erp_px_cat
+
+Select * from bronze.erp_px_cat_g1v2
+Where cat!=trim(cat) or subcat!= Trim(subcat)
+
+Select Distinct maintenance from bronze.erp_px_cat_g1v2
+
+
+
+
